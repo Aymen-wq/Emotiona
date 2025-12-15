@@ -1,0 +1,166 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Wind, Heart, Mountain, Zap, Moon, Search } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+import ExerciseCard from '@/components/exercises/ExerciseCard';
+import ExercisePlayer from '@/components/exercises/ExercisePlayer';
+
+const categories = [
+  { id: 'all', label: 'All', icon: null },
+  { id: 'breathing', label: 'Breathing', icon: Wind },
+  { id: 'relaxation', label: 'Relaxation', icon: Moon },
+  { id: 'grounding', label: 'Grounding', icon: Mountain },
+  { id: 'motivation', label: 'Motivation', icon: Zap },
+  { id: 'calming', label: 'Calming', icon: Heart }
+];
+
+export default function Exercises() {
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedExercise, setSelectedExercise] = useState(null);
+
+  const { data: exercises = [], isLoading } = useQuery({
+    queryKey: ['exercises'],
+    queryFn: () => base44.entities.Exercise.list()
+  });
+
+  const { data: recentEntry } = useQuery({
+    queryKey: ['recent-entry'],
+    queryFn: async () => {
+      const entries = await base44.entities.EmotionEntry.list('-created_date', 1);
+      return entries[0];
+    }
+  });
+
+  const filteredExercises = exercises.filter(ex => {
+    const matchesCategory = selectedCategory === 'all' || ex.category === selectedCategory;
+    const matchesSearch = !searchQuery || 
+      ex.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ex.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  // Recommend exercise based on recent mood
+  const recommendedExercise = exercises.find(ex => {
+    if (!recentEntry?.mental_state) return false;
+    return ex.recommended_for?.includes(recentEntry.mental_state);
+  }) || exercises[0];
+
+  return (
+    <div className="min-h-screen bg-[#F5F7FA]">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-100 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link to={createPageUrl('Home')}>
+              <Button variant="ghost" size="icon" className="text-slate-600">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <h1 className="text-lg font-semibold text-[#0B1C2D]">Exercises</h1>
+            <div className="w-10" />
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search exercises..."
+            className="pl-11 h-12 rounded-xl bg-white border-slate-200"
+          />
+        </div>
+
+        {/* Categories */}
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+          {categories.map(({ id, label, icon: Icon }) => (
+            <motion.button
+              key={id}
+              onClick={() => setSelectedCategory(id)}
+              className={`px-4 py-2 rounded-full whitespace-nowrap flex items-center gap-2 transition-all ${
+                selectedCategory === id
+                  ? 'bg-[#0B1C2D] text-white'
+                  : 'bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+              whileTap={{ scale: 0.95 }}
+            >
+              {Icon && <Icon className="w-4 h-4" />}
+              <span className="text-sm font-medium">{label}</span>
+            </motion.button>
+          ))}
+        </div>
+
+        {/* Recommended */}
+        {recommendedExercise && selectedCategory === 'all' && !searchQuery && (
+          <div>
+            <h2 className="text-lg font-semibold text-slate-800 mb-3">Recommended for you</h2>
+            <ExerciseCard
+              exercise={recommendedExercise}
+              recommended
+              onClick={() => setSelectedExercise(recommendedExercise)}
+            />
+          </div>
+        )}
+
+        {/* Exercise Grid */}
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800 mb-3">
+            {selectedCategory === 'all' ? 'All Exercises' : categories.find(c => c.id === selectedCategory)?.label}
+          </h2>
+          
+          {isLoading ? (
+            <div className="grid grid-cols-2 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl p-5 animate-pulse">
+                  <div className="w-10 h-10 bg-slate-200 rounded-xl mb-3" />
+                  <div className="h-4 bg-slate-200 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-slate-100 rounded w-full mb-3" />
+                  <div className="h-3 bg-slate-100 rounded w-1/3" />
+                </div>
+              ))}
+            </div>
+          ) : filteredExercises.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {filteredExercises.map((exercise, idx) => (
+                <motion.div
+                  key={exercise.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                >
+                  <ExerciseCard
+                    exercise={exercise}
+                    onClick={() => setSelectedExercise(exercise)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-slate-500">No exercises found</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Exercise Player Modal */}
+      {selectedExercise && (
+        <ExercisePlayer
+          exercise={selectedExercise}
+          onClose={() => setSelectedExercise(null)}
+          onComplete={() => {}}
+        />
+      )}
+    </div>
+  );
+}

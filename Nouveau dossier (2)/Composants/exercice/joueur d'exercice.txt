@@ -1,0 +1,145 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Play, Pause, RotateCcw, CheckCircle } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+
+export default function ExercisePlayer({ exercise, onClose, onComplete }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(exercise.duration_minutes * 60);
+  const [completed, setCompleted] = useState(false);
+
+  useEffect(() => {
+    let timer;
+    if (isPlaying && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            setIsPlaying(false);
+            setCompleted(true);
+            if (onComplete) onComplete();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isPlaying, timeLeft, onComplete]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const progress = 1 - (timeLeft / (exercise.duration_minutes * 60));
+
+  const reset = () => {
+    setTimeLeft(exercise.duration_minutes * 60);
+    setIsPlaying(false);
+    setCompleted(false);
+  };
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-white rounded-3xl w-full max-w-md overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="bg-gradient-to-br from-[#0B1C2D] to-[#1a3a5c] p-8 text-white">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold mb-1">{exercise.title}</h2>
+                <p className="text-white/70 text-sm capitalize">{exercise.category}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="text-white/70 hover:text-white hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <div className="relative w-48 h-48 mb-4">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="96"
+                    cy="96"
+                    r="88"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.1)"
+                    strokeWidth="8"
+                  />
+                  <motion.circle
+                    cx="96"
+                    cy="96"
+                    r="88"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={553}
+                    strokeDashoffset={553 * (1 - progress)}
+                    initial={{ strokeDashoffset: 553 }}
+                    animate={{ strokeDashoffset: 553 * (1 - progress) }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  {completed ? (
+                    <CheckCircle className="w-16 h-16 text-emerald-400" />
+                  ) : (
+                    <span className="text-4xl font-light">{formatTime(timeLeft)}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                {!completed && (
+                  <Button
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    className="bg-white text-[#0B1C2D] hover:bg-white/90 rounded-full px-8"
+                  >
+                    {isPlaying ? (
+                      <><Pause className="w-4 h-4 mr-2" /> Pause</>
+                    ) : (
+                      <><Play className="w-4 h-4 mr-2" /> {timeLeft === exercise.duration_minutes * 60 ? 'Start' : 'Resume'}</>
+                    )}
+                  </Button>
+                )}
+                {(timeLeft !== exercise.duration_minutes * 60 || completed) && (
+                  <Button
+                    variant="outline"
+                    onClick={reset}
+                    className="border-white/30 text-white hover:bg-white/10 rounded-full"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" /> Reset
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <h3 className="font-semibold text-slate-800 mb-3">Instructions</h3>
+            <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
+              {exercise.instructions || "Follow along with the timer and focus on your breath."}
+            </p>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}

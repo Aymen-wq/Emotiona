@@ -1,0 +1,31 @@
+{
+  "name": "DailyGuidance",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date for this guidance"
+    },
+    "supportive_message": {
+      "type": "string",
+      "description": "Daily supportive message"
+    },
+    "personalized_suggestion": {
+      "type": "string",
+      "description": "Personalized suggestion based on patterns"
+    },
+    "simple_action": {
+      "type": "string",
+      "description": "One simple action to take"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user has seen this"
+    }
+  },
+  "required": [
+    "date"
+  ]
+}

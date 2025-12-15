@@ -1,0 +1,48 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Sparkles, ArrowRight } from 'lucide-react';
+
+export default function GuidanceCard({ message, suggestion, action, onActionClick }) {
+  return (
+    <motion.div
+      className="bg-gradient-to-br from-[#0B1C2D] to-[#1a3a5c] rounded-3xl p-6 text-white relative overflow-hidden"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
+    >
+      <div className="absolute top-0 right-0 w-40 h-40 opacity-10">
+        <svg viewBox="0 0 100 100" className="w-full h-full">
+          <circle cx="70" cy="30" r="50" fill="white" />
+        </svg>
+      </div>
+      
+      <div className="relative z-10">
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="w-5 h-5 text-amber-300" />
+          <span className="text-amber-300 text-sm font-medium">Daily Guidance</span>
+        </div>
+        
+        <p className="text-white/90 text-lg font-light leading-relaxed mb-4">
+          {message || "Take a moment to check in with yourself today."}
+        </p>
+        
+        {suggestion && (
+          <p className="text-white/70 text-sm mb-4">
+            💡 {suggestion}
+          </p>
+        )}
+        
+        {action && (
+          <motion.button
+            onClick={onActionClick}
+            className="flex items-center gap-2 text-sm bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-colors"
+            whileHover={{ x: 5 }}
+          >
+            {action}
+            <ArrowRight className="w-4 h-4" />
+          </motion.button>
+        )}
+      </div>
+    </motion.div>
+  );
+}

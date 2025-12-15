@@ -1,0 +1,95 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Slider } from "@/components/ui/slider";
+
+const emotions = [
+  { emoji: '😊', label: 'Happy', color: '#10b981' },
+  { emoji: '😌', label: 'Calm', color: '#3b82f6' },
+  { emoji: '😐', label: 'Neutral', color: '#64748b' },
+  { emoji: '😔', label: 'Sad', color: '#6366f1' },
+  { emoji: '😤', label: 'Frustrated', color: '#f59e0b' },
+  { emoji: '😰', label: 'Anxious', color: '#f43f5e' },
+  { emoji: '😴', label: 'Tired', color: '#8b5cf6' },
+  { emoji: '🤩', label: 'Excited', color: '#ec4899' }
+];
+
+export default function EmotionSelector({ 
+  selectedEmoji, 
+  onEmojiSelect, 
+  intensity = 5, 
+  onIntensityChange,
+  energy = 5,
+  onEnergyChange 
+}) {
+  return (
+    <div className="space-y-8">
+      <div>
+        <label className="text-sm font-medium text-slate-600 mb-4 block">
+          How are you feeling?
+        </label>
+        <div className="grid grid-cols-4 gap-3">
+          {emotions.map((emotion, idx) => (
+            <motion.button
+              key={idx}
+              onClick={() => onEmojiSelect(emotion.emoji)}
+              className={`p-4 rounded-2xl border-2 transition-all ${
+                selectedEmoji === emotion.emoji 
+                  ? 'border-[#0B1C2D] bg-slate-50' 
+                  : 'border-transparent bg-slate-50/50 hover:bg-slate-100'
+              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="text-3xl block mb-1">{emotion.emoji}</span>
+              <span className="text-xs text-slate-500">{emotion.label}</span>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div>
+          <div className="flex justify-between items-center mb-3">
+            <label className="text-sm font-medium text-slate-600">
+              Emotional Intensity
+            </label>
+            <span className="text-sm text-slate-400">{intensity}/10</span>
+          </div>
+          <Slider
+            value={[intensity]}
+            onValueChange={([val]) => onIntensityChange(val)}
+            max={10}
+            min={1}
+            step={1}
+            className="w-full"
+          />
+          <div className="flex justify-between text-xs text-slate-400 mt-2">
+            <span>Subtle</span>
+            <span>Intense</span>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex justify-between items-center mb-3">
+            <label className="text-sm font-medium text-slate-600">
+              Energy Level
+            </label>
+            <span className="text-sm text-slate-400">{energy}/10</span>
+          </div>
+          <Slider
+            value={[energy]}
+            onValueChange={([val]) => onEnergyChange(val)}
+            max={10}
+            min={1}
+            step={1}
+            className="w-full"
+          />
+          <div className="flex justify-between text-xs text-slate-400 mt-2">
+            <span>Low</span>
+            <span>High</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

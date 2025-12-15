@@ -1,0 +1,74 @@
+{
+  "name": "EmotionEntry",
+  "type": "object",
+  "properties": {
+    "entry_type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "voice",
+        "quick"
+      ],
+      "description": "How the entry was created"
+    },
+    "text_content": {
+      "type": "string",
+      "description": "Journal text or voice transcription"
+    },
+    "voice_url": {
+      "type": "string",
+      "description": "URL to voice recording if applicable"
+    },
+    "selected_emoji": {
+      "type": "string",
+      "description": "Quick selector emoji"
+    },
+    "emotional_intensity": {
+      "type": "number",
+      "description": "1-10 scale of emotional intensity"
+    },
+    "energy_level": {
+      "type": "number",
+      "description": "1-10 scale of energy"
+    },
+    "primary_emotion": {
+      "type": "string",
+      "description": "AI detected primary emotion"
+    },
+    "secondary_emotions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "AI detected secondary emotions"
+    },
+    "mental_state": {
+      "type": "string",
+      "enum": [
+        "excellent",
+        "good",
+        "neutral",
+        "low",
+        "struggling"
+      ],
+      "description": "Overall mental state assessment"
+    },
+    "ai_insight": {
+      "type": "string",
+      "description": "AI generated insight about the entry"
+    },
+    "entry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of entry"
+    },
+    "entry_time": {
+      "type": "string",
+      "description": "Time of entry"
+    }
+  },
+  "required": [
+    "entry_type",
+    "entry_date"
+  ]
+}

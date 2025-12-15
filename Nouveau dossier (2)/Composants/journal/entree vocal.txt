@@ -1,0 +1,180 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Mic, Square, Play, Pause, Trash2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+
+export default function VoiceEntry({ onRecordingComplete, audioUrl, onClear }) {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const audioRef = useRef(null);
+  const chunksRef = useRef([]);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      chunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        chunksRef.current.push(e.data);
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        onRecordingComplete(url, blob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => {
+          if (prev >= 60) {
+            stopRecording();
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+      setDuration(recordingTime);
+    }
+  };
+
+  const togglePlayback = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      <label className="text-sm font-medium text-slate-600 block">
+        Record your thoughts (30-60 seconds)
+      </label>
+
+      <div className="flex flex-col items-center justify-center py-8">
+        {!audioUrl ? (
+          <>
+            <motion.button
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`w-24 h-24 rounded-full flex items-center justify-center transition-all ${
+                isRecording 
+                  ? 'bg-rose-500 hover:bg-rose-600' 
+                  : 'bg-[#0B1C2D] hover:bg-[#0B1C2D]/90'
+              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              animate={isRecording ? { scale: [1, 1.1, 1] } : {}}
+              transition={isRecording ? { duration: 1, repeat: Infinity } : {}}
+            >
+              {isRecording ? (
+                <Square className="w-8 h-8 text-white" fill="white" />
+              ) : (
+                <Mic className="w-8 h-8 text-white" />
+              )}
+            </motion.button>
+            
+            <p className="mt-4 text-slate-500">
+              {isRecording ? formatTime(recordingTime) : 'Tap to record'}
+            </p>
+            
+            {isRecording && (
+              <div className="flex gap-1 mt-3">
+                {[...Array(5)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="w-1 bg-rose-500 rounded-full"
+                    animate={{ height: [8, 24, 8] }}
+                    transition={{ 
+                      duration: 0.5, 
+                      repeat: Infinity, 
+                      delay: i * 0.1 
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="w-full max-w-sm">
+            <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} />
+            
+            <div className="bg-slate-100 rounded-2xl p-6 flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={togglePlayback}
+                className="w-12 h-12 rounded-full bg-[#0B1C2D] hover:bg-[#0B1C2D]/90"
+              >
+                {isPlaying ? (
+                  <Pause className="w-5 h-5 text-white" />
+                ) : (
+                  <Play className="w-5 h-5 text-white ml-0.5" />
+                )}
+              </Button>
+              
+              <div className="flex-1">
+                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-[#0B1C2D]"
+                    initial={{ width: 0 }}
+                    animate={{ width: isPlaying ? '100%' : '0%' }}
+                    transition={{ duration: duration }}
+                  />
+                </div>
+                <p className="text-sm text-slate-500 mt-2">{formatTime(duration)}</p>
+              </div>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClear}
+                className="text-slate-400 hover:text-rose-500"
+              >
+                <Trash2 className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}

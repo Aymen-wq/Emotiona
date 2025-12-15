@@ -1,0 +1,283 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { base44 } from '@/api/base44Client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, PenLine, Mic, Smile, Loader2, Sparkles } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { format } from 'date-fns';
+
+import TextEntry from '@/components/journal/TextEntry';
+import VoiceEntry from '@/components/journal/VoiceEntry';
+import EmotionSelector from '@/components/journal/EmotionSelector';
+
+const entryModes = [
+  { id: 'text', icon: PenLine, label: 'Write' },
+  { id: 'voice', icon: Mic, label: 'Voice' },
+  { id: 'quick', icon: Smile, label: 'Quick' }
+];
+
+export default function Journal() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  
+  const [mode, setMode] = useState('text');
+  const [textContent, setTextContent] = useState('');
+  const [voiceUrl, setVoiceUrl] = useState('');
+  const [voiceBlob, setVoiceBlob] = useState(null);
+  const [selectedEmoji, setSelectedEmoji] = useState('');
+  const [intensity, setIntensity] = useState(5);
+  const [energy, setEnergy] = useState(5);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
+
+  const saveMutation = useMutation({
+    mutationFn: async (entryData) => {
+      return base44.entities.EmotionEntry.create(entryData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['emotion-entries'] });
+      navigate(createPageUrl('Home'));
+    }
+  });
+
+  const analyzeEmotion = async () => {
+    setIsAnalyzing(true);
+    
+    let contentToAnalyze = '';
+    if (mode === 'text') {
+      contentToAnalyze = textContent;
+    } else if (mode === 'quick') {
+      contentToAnalyze = `Selected emotion: ${selectedEmoji}, Intensity: ${intensity}/10, Energy: ${energy}/10`;
+    } else if (mode === 'voice') {
+      contentToAnalyze = 'Voice entry - analyzing emotional tone';
+    }
+
+    const result = await base44.integrations.Core.InvokeLLM({
+      prompt: `Analyze this emotional journal entry and provide insights. Be warm, supportive, and non-judgmental.
+
+Entry: ${contentToAnalyze}
+Entry type: ${mode}
+${mode === 'quick' ? `Emoji selected: ${selectedEmoji}, Emotional intensity: ${intensity}/10, Energy level: ${energy}/10` : ''}
+
+Respond in JSON format with:
+- primary_emotion: the main emotion detected (one word)
+- secondary_emotions: array of 2-3 other emotions present
+- mental_state: one of "excellent", "good", "neutral", "low", "struggling"
+- ai_insight: a brief, supportive insight (2-3 sentences max, warm and encouraging)`,
+      response_json_schema: {
+        type: "object",
+        properties: {
+          primary_emotion: { type: "string" },
+          secondary_emotions: { type: "array", items: { type: "string" } },
+          mental_state: { type: "string", enum: ["excellent", "good", "neutral", "low", "struggling"] },
+          ai_insight: { type: "string" }
+        },
+        required: ["primary_emotion", "mental_state", "ai_insight"]
+      }
+    });
+
+    setAnalysisResult(result);
+    setIsAnalyzing(false);
+  };
+
+  const saveEntry = async () => {
+    const entryData = {
+      entry_type: mode,
+      text_content: mode === 'text' ? textContent : '',
+      voice_url: mode === 'voice' ? voiceUrl : '',
+      selected_emoji: mode === 'quick' ? selectedEmoji : '',
+      emotional_intensity: mode === 'quick' ? intensity : null,
+      energy_level: mode === 'quick' ? energy : null,
+      primary_emotion: analysisResult?.primary_emotion || '',
+      secondary_emotions: analysisResult?.secondary_emotions || [],
+      mental_state: analysisResult?.mental_state || 'neutral',
+      ai_insight: analysisResult?.ai_insight || '',
+      entry_date: format(new Date(), 'yyyy-MM-dd'),
+      entry_time: format(new Date(), 'HH:mm')
+    };
+
+    saveMutation.mutate(entryData);
+  };
+
+  const canAnalyze = () => {
+    if (mode === 'text') return textContent.length > 10;
+    if (mode === 'voice') return !!voiceUrl;
+    if (mode === 'quick') return !!selectedEmoji;
+    return false;
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F5F7FA]">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-100 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(createPageUrl('Home'))}
+              className="text-slate-600"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-lg font-semibold text-[#0B1C2D]">New Entry</h1>
+            <div className="w-10" />
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Mode Selector */}
+        <div className="bg-white rounded-2xl p-2 mb-6 flex gap-2">
+          {entryModes.map(({ id, icon: Icon, label }) => (
+            <motion.button
+              key={id}
+              onClick={() => {
+                setMode(id);
+                setAnalysisResult(null);
+              }}
+              className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${
+                mode === id 
+                  ? 'bg-[#0B1C2D] text-white' 
+                  : 'text-slate-500 hover:bg-slate-50'
+              }`}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="text-sm font-medium">{label}</span>
+            </motion.button>
+          ))}
+        </div>
+
+        {/* Entry Form */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+          <AnimatePresence mode="wait">
+            {mode === 'text' && (
+              <TextEntry
+                key="text"
+                value={textContent}
+                onChange={setTextContent}
+              />
+            )}
+            {mode === 'voice' && (
+              <VoiceEntry
+                key="voice"
+                audioUrl={voiceUrl}
+                onRecordingComplete={(url, blob) => {
+                  setVoiceUrl(url);
+                  setVoiceBlob(blob);
+                }}
+                onClear={() => {
+                  setVoiceUrl('');
+                  setVoiceBlob(null);
+                }}
+              />
+            )}
+            {mode === 'quick' && (
+              <motion.div
+                key="quick"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <EmotionSelector
+                  selectedEmoji={selectedEmoji}
+                  onEmojiSelect={setSelectedEmoji}
+                  intensity={intensity}
+                  onIntensityChange={setIntensity}
+                  energy={energy}
+                  onEnergyChange={setEnergy}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Analysis Result */}
+          <AnimatePresence>
+            {analysisResult && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-6 pt-6 border-t border-slate-100"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-5 h-5 text-amber-500" />
+                  <span className="font-medium text-slate-800">AI Analysis</span>
+                </div>
+                
+                <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">
+                      {analysisResult.mental_state === 'excellent' ? '✨' :
+                       analysisResult.mental_state === 'good' ? '😊' :
+                       analysisResult.mental_state === 'neutral' ? '😐' :
+                       analysisResult.mental_state === 'low' ? '😔' : '💭'}
+                    </span>
+                    <div>
+                      <p className="font-semibold text-slate-800 capitalize">
+                        {analysisResult.primary_emotion}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {analysisResult.secondary_emotions?.join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    {analysisResult.ai_insight}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Actions */}
+          <div className="mt-6 pt-6 border-t border-slate-100 flex gap-3">
+            {!analysisResult ? (
+              <Button
+                onClick={analyzeEmotion}
+                disabled={!canAnalyze() || isAnalyzing}
+                className="flex-1 bg-[#0B1C2D] hover:bg-[#0B1C2D]/90 rounded-xl h-12"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Analyze Entry
+                  </>
+                )}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setAnalysisResult(null)}
+                  className="flex-1 rounded-xl h-12"
+                >
+                  Edit Entry
+                </Button>
+                <Button
+                  onClick={saveEntry}
+                  disabled={saveMutation.isPending}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 rounded-xl h-12"
+                >
+                  {saveMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    'Save Entry'
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

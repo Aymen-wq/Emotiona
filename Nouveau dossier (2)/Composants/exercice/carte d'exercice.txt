@@ -1,0 +1,53 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Clock, Wind, Heart, Mountain, Zap, Moon } from 'lucide-react';
+
+const categoryIcons = {
+  breathing: Wind,
+  relaxation: Moon,
+  grounding: Mountain,
+  motivation: Zap,
+  calming: Heart
+};
+
+const categoryColors = {
+  breathing: { bg: 'bg-sky-50', text: 'text-sky-600', accent: 'bg-sky-500' },
+  relaxation: { bg: 'bg-violet-50', text: 'text-violet-600', accent: 'bg-violet-500' },
+  grounding: { bg: 'bg-emerald-50', text: 'text-emerald-600', accent: 'bg-emerald-500' },
+  motivation: { bg: 'bg-amber-50', text: 'text-amber-600', accent: 'bg-amber-500' },
+  calming: { bg: 'bg-rose-50', text: 'text-rose-600', accent: 'bg-rose-500' }
+};
+
+export default function ExerciseCard({ exercise, onClick, recommended = false }) {
+  const Icon = categoryIcons[exercise.category] || Heart;
+  const colors = categoryColors[exercise.category] || categoryColors.calming;
+
+  return (
+    <motion.div
+      onClick={onClick}
+      className={`${colors.bg} rounded-2xl p-5 cursor-pointer relative overflow-hidden`}
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
+      {recommended && (
+        <div className="absolute top-3 right-3 bg-[#0B1C2D] text-white text-xs px-2 py-1 rounded-full">
+          Recommended
+        </div>
+      )}
+      
+      <div className={`w-10 h-10 ${colors.accent} rounded-xl flex items-center justify-center mb-3`}>
+        <Icon className="w-5 h-5 text-white" />
+      </div>
+      
+      <h3 className="font-semibold text-slate-800 mb-1">{exercise.title}</h3>
+      <p className="text-sm text-slate-500 mb-3 line-clamp-2">{exercise.description}</p>
+      
+      <div className="flex items-center gap-1 text-xs text-slate-400">
+        <Clock className="w-3.5 h-3.5" />
+        <span>{exercise.duration_minutes} min</span>
+      </div>
+    </motion.div>
+  );
+}

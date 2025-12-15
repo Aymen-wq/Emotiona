@@ -1,0 +1,30 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+
+export default function EmotionWave({ className = "", color = "#0B1C2D" }) {
+  return (
+    <div className={`relative overflow-hidden ${className}`}>
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        <defs>
+          <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={color} stopOpacity="0.8" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.3" />
+          </linearGradient>
+        </defs>
+        <motion.path
+          d="M50 15 C60 25, 70 35, 65 50 C60 65, 55 75, 50 85 C45 75, 40 65, 35 50 C30 35, 40 25, 50 15"
+          fill="url(#waveGradient)"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ 
+            scale: [0.95, 1.02, 0.95],
+            opacity: 1
+          }}
+          transition={{ 
+            scale: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+            opacity: { duration: 0.5 }
+          }}
+        />
+      </svg>
+    </div>
+  );
+}

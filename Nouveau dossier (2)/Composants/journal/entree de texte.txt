@@ -1,0 +1,26 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Textarea } from "@/components/ui/textarea";
+
+export default function TextEntry({ value, onChange, placeholder }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-3"
+    >
+      <label className="text-sm font-medium text-slate-600 block">
+        What's on your mind?
+      </label>
+      <Textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder || "Write freely about how you're feeling today..."}
+        className="min-h-[200px] resize-none rounded-2xl border-slate-200 focus:border-[#0B1C2D] focus:ring-[#0B1C2D]/10 text-base leading-relaxed p-4"
+      />
+      <p className="text-xs text-slate-400 text-right">
+        {value.length} characters
+      </p>
+    </motion.div>
+  );
+}

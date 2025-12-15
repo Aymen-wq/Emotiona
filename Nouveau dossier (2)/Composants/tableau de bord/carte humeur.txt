@@ -1,0 +1,50 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+
+const moodColors = {
+  excellent: { bg: 'bg-emerald-50', text: 'text-emerald-600', accent: '#10b981' },
+  good: { bg: 'bg-blue-50', text: 'text-blue-600', accent: '#3b82f6' },
+  neutral: { bg: 'bg-slate-50', text: 'text-slate-600', accent: '#64748b' },
+  low: { bg: 'bg-amber-50', text: 'text-amber-600', accent: '#f59e0b' },
+  struggling: { bg: 'bg-rose-50', text: 'text-rose-600', accent: '#f43f5e' }
+};
+
+const moodEmojis = {
+  excellent: '✨',
+  good: '😊',
+  neutral: '😐',
+  low: '😔',
+  struggling: '💭'
+};
+
+export default function MoodCard({ mood = 'neutral', emotion = 'Calm', insight, onClick }) {
+  const colors = moodColors[mood] || moodColors.neutral;
+  
+  return (
+    <motion.div
+      onClick={onClick}
+      className={`${colors.bg} rounded-3xl p-6 cursor-pointer relative overflow-hidden`}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
+        <svg viewBox="0 0 100 100" className="w-full h-full">
+          <circle cx="80" cy="20" r="60" fill={colors.accent} />
+        </svg>
+      </div>
+      
+      <div className="relative z-10">
+        <span className="text-4xl mb-3 block">{moodEmojis[mood]}</span>
+        <h3 className={`text-2xl font-semibold ${colors.text} mb-1`}>
+          {emotion}
+        </h3>
+        <p className="text-slate-500 text-sm leading-relaxed">
+          {insight || "How are you feeling today?"}
+        </p>
+      </div>
+    </motion.div>
+  );
+}

@@ -1,0 +1,87 @@
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { Home, BookOpen, Activity, BarChart2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+const navItems = [
+  { icon: Home, label: 'Home', page: 'Home' },
+  { icon: BookOpen, label: 'Journal', page: 'Journal' },
+  { icon: Activity, label: 'Exercises', page: 'Exercises' },
+  { icon: BarChart2, label: 'Insights', page: 'Insights' }
+];
+
+export default function Layout({ children, currentPageName }) {
+  const location = useLocation();
+  
+  // Hide nav on certain pages if needed
+  const showNav = true;
+
+  return (
+    <div className="min-h-screen bg-[#F5F7FA]">
+      <style>{`
+        :root {
+          --color-primary: #0B1C2D;
+          --color-secondary: #F5F7FA;
+          --color-accent: #3b82f6;
+        }
+        
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+      
+      <main className="pb-20">
+        {children}
+      </main>
+
+      {/* Bottom Navigation */}
+      {showNav && (
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 z-50 safe-area-inset-bottom">
+          <div className="max-w-2xl mx-auto px-6">
+            <div className="flex items-center justify-around py-2">
+              {navItems.map(({ icon: Icon, label, page }) => {
+                const isActive = currentPageName === page;
+                return (
+                  <Link
+                    key={page}
+                    to={createPageUrl(page)}
+                    className="relative flex flex-col items-center py-2 px-4"
+                  >
+                    <motion.div
+                      className={`p-2 rounded-xl transition-colors ${
+                        isActive ? 'bg-[#0B1C2D]' : 'bg-transparent'
+                      }`}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <Icon 
+                        className={`w-5 h-5 ${
+                          isActive ? 'text-white' : 'text-slate-400'
+                        }`}
+                      />
+                    </motion.div>
+                    <span className={`text-xs mt-1 ${
+                      isActive ? 'text-[#0B1C2D] font-medium' : 'text-slate-400'
+                    }`}>
+                      {label}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </nav>
+      )}
+    </div>
+  );
+}

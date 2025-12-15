@@ -1,0 +1,201 @@
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import { Plus, BookOpen, Activity, TrendingUp } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+
+import MoodCard from '@/components/dashboard/MoodCard';
+import WeeklyChart from '@/components/dashboard/WeeklyChart';
+import GuidanceCard from '@/components/dashboard/GuidanceCard';
+import EmotionWave from '@/components/ui/EmotionWave';
+
+export default function Home() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+  }, []);
+
+  const { data: entries = [], isLoading } = useQuery({
+    queryKey: ['emotion-entries'],
+    queryFn: () => base44.entities.EmotionEntry.list('-created_date', 30)
+  });
+
+  const todayEntry = entries.find(e => 
+    e.entry_date === format(new Date(), 'yyyy-MM-dd')
+  );
+
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekEntries = entries.filter(e => 
+    e.entry_date && isWithinInterval(new Date(e.entry_date), { start: weekStart, end: weekEnd })
+  );
+
+  const { data: guidance } = useQuery({
+    queryKey: ['daily-guidance'],
+    queryFn: () => base44.entities.DailyGuidance.filter({
+      date: format(new Date(), 'yyyy-MM-dd')
+    }).then(res => res[0])
+  });
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const firstName = user?.full_name?.split(' ')[0] || 'there';
+
+  return (
+    <div className="min-h-screen bg-[#F5F7FA]">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-100">
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-400 text-sm">{format(new Date(), 'EEEE, MMMM d')}</p>
+              <h1 className="text-2xl font-semibold text-[#0B1C2D] mt-1">
+                {getGreeting()}, {firstName}
+              </h1>
+            </div>
+            <div className="w-12 h-12 relative">
+              <EmotionWave className="w-full h-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* Today's Mood */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-800">Today's Mood</h2>
+            <Link to={createPageUrl('Journal')}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-[#0B1C2D] hover:bg-[#0B1C2D]/5"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Log Entry
+              </Button>
+            </Link>
+          </div>
+          
+          <MoodCard
+            mood={todayEntry?.mental_state || 'neutral'}
+            emotion={todayEntry?.primary_emotion || 'How are you feeling?'}
+            insight={todayEntry?.ai_insight || "Tap to log your first entry of the day"}
+            onClick={() => window.location.href = createPageUrl('Journal')}
+          />
+        </div>
+
+        {/* Daily Guidance */}
+        <GuidanceCard
+          message={guidance?.supportive_message || "Take a moment today to check in with yourself. Your emotions matter."}
+          suggestion={guidance?.personalized_suggestion}
+          action={guidance?.simple_action || "Try a breathing exercise"}
+          onActionClick={() => window.location.href = createPageUrl('Exercises')}
+        />
+
+        {/* Weekly Overview */}
+        <WeeklyChart data={weekEntries} />
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-3 gap-3">
+          <Link to={createPageUrl('Journal')}>
+            <motion.div 
+              className="bg-white rounded-2xl p-4 text-center shadow-sm border border-slate-100"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="w-10 h-10 bg-[#0B1C2D] rounded-xl flex items-center justify-center mx-auto mb-2">
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-sm font-medium text-slate-700">Journal</span>
+            </motion.div>
+          </Link>
+
+          <Link to={createPageUrl('Exercises')}>
+            <motion.div 
+              className="bg-white rounded-2xl p-4 text-center shadow-sm border border-slate-100"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center mx-auto mb-2">
+                <Activity className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-sm font-medium text-slate-700">Exercises</span>
+            </motion.div>
+          </Link>
+
+          <Link to={createPageUrl('Insights')}>
+            <motion.div 
+              className="bg-white rounded-2xl p-4 text-center shadow-sm border border-slate-100"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="w-10 h-10 bg-violet-500 rounded-xl flex items-center justify-center mx-auto mb-2">
+                <TrendingUp className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-sm font-medium text-slate-700">Insights</span>
+            </motion.div>
+          </Link>
+        </div>
+
+        {/* Recent Entries */}
+        {entries.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold text-slate-800 mb-4">Recent Entries</h2>
+            <div className="space-y-3">
+              {entries.slice(0, 3).map((entry, idx) => (
+                <motion.div
+                  key={entry.id}
+                  className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{entry.selected_emoji || '😐'}</span>
+                      <div>
+                        <p className="font-medium text-slate-800">{entry.primary_emotion || 'Entry'}</p>
+                        <p className="text-xs text-slate-400">
+                          {entry.entry_date && format(new Date(entry.entry_date), 'MMM d, yyyy')}
+                          {entry.entry_time && ` at ${entry.entry_time}`}
+                        </p>
+                      </div>
+                    </div>
+                    {entry.mental_state && (
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        entry.mental_state === 'excellent' ? 'bg-emerald-100 text-emerald-700' :
+                        entry.mental_state === 'good' ? 'bg-blue-100 text-blue-700' :
+                        entry.mental_state === 'neutral' ? 'bg-slate-100 text-slate-700' :
+                        entry.mental_state === 'low' ? 'bg-amber-100 text-amber-700' :
+                        'bg-rose-100 text-rose-700'
+                      }`}>
+                        {entry.mental_state}
+                      </span>
+                    )}
+                  </div>
+                  {entry.text_content && (
+                    <p className="text-sm text-slate-500 mt-2 line-clamp-2">
+                      {entry.text_content}
+                    </p>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

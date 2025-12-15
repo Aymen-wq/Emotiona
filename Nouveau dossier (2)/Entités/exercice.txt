@@ -1,0 +1,49 @@
+{
+  "name": "Exercise",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Exercise name"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "breathing",
+        "relaxation",
+        "grounding",
+        "motivation",
+        "calming"
+      ],
+      "description": "Type of exercise"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "description": "Duration in minutes (1-5)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description"
+    },
+    "instructions": {
+      "type": "string",
+      "description": "Step-by-step instructions"
+    },
+    "recommended_for": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emotions this exercise helps with"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Icon identifier"
+    }
+  },
+  "required": [
+    "title",
+    "category",
+    "duration_minutes"
+  ]
+}
